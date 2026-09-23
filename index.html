@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anime Hub</title>
+    <title>Anime Hub - Pure JS Version</title>
     <link rel="icon" type="image/png" href="anime.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -189,12 +189,12 @@
                 rank: 1,
                 coverImage: "we.jpg",
                 details: "Iruma Suzuki is a 14-year-old human boy who gets sold to a powerful demon by his irresponsible parents and starts attending a school for demons.",
-                downloadLink: "",
+                downloadLink: "https://www.animedubhindi.link/welcome-to-demon-school-iruma-kun-season-3-hindi-multi-audio/",
                 seasons: [
                     {
                         season: 1,
                         episodes: [
-                             { episode: 1, title: "Episode 1", downloadLink: "https://hubcloud.ist/drive/jtv4wq1tqgeksue" },
+                            { episode: 1, title: "Episode 1", downloadLink: "https://hubcloud.ist/drive/jtv4wq1tqgeksue" },
                             { episode: 2, title: "Episode 2", downloadLink: " https://share.google/WpcWzYOJUo9EifZq4" },
                             { episode: 3, title: "Episode 3", downloadLink: " https://share.google/4TpQ55eHsciLKRvww" },
                             { episode: 4, title: "Episode 4", downloadLink: " https://share.google/3bcBQVjGAAYnnys4r" },
@@ -217,6 +217,7 @@
                             { episode: 21, title: "Episode 21", downloadLink: " https://share.google/Cr8sX4QRudIaS2aeW" },
                             { episode: 22, title: "Episode 22", downloadLink: " https://share.google/gu1xJf0uXzctZV59y" },
                             { episode: 23, title: "Episode 23", downloadLink: "  https://share.google/AHInReuCy1ZczUKqt" }
+                        
                         ]
                     }
                     
@@ -546,11 +547,17 @@
 
             // Build Seasons and Episodes Content
             if (anime.seasons && anime.seasons.length > 0) {
-                anime.seasons.forEach(season => {
+                anime.seasons.forEach((season, index) => {
+                    const seasonId = `season-${index}`;
                     html += `
-                        <div class="mb-12">
-                            <h2 class="text-2xl font-bold mb-6 pb-4 border-b border-white/10 text-white tracking-tight">Season ${season.season}</h2>
-                            <div class="flex flex-col gap-3">
+                        <div class="mb-6 glass rounded-2xl border border-white/10 overflow-hidden">
+                            <button onclick="toggleSeason('${seasonId}', this)" class="w-full flex items-center justify-between p-6 bg-white/5 hover:bg-white/10 transition-colors text-left focus:outline-none group">
+                                <h2 class="text-2xl font-bold text-white tracking-tight">Season ${season.season}</h2>
+                                <svg class="w-6 h-6 text-zinc-400 group-hover:text-white transition-transform duration-300 transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                </svg>
+                            </button>
+                            <div id="${seasonId}" class="hidden flex-col gap-2 p-6 pt-2 bg-black/20 border-t border-white/5">
                     `;
                     
                     if (season.episodes && season.episodes.length > 0) {
@@ -591,6 +598,25 @@
             }
 
             container.innerHTML = html;
+        }
+
+        /**
+         * Helper function to toggle the visibility of a season's episode list
+         * @param {string} seasonId - The ID of the container holding the episodes
+         * @param {HTMLElement} btn - The button element that was clicked
+         */
+        function toggleSeason(seasonId, btn) {
+            const content = document.getElementById(seasonId);
+            const icon = btn.querySelector('svg');
+            
+            if (content) {
+                // Toggle visibility
+                content.classList.toggle('hidden');
+                content.classList.toggle('flex');
+                
+                // Rotate the arrow icon
+                icon.classList.toggle('rotate-180');
+            }
         }
 
         /**
