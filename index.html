@@ -35,8 +35,9 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #050505; }
+        /* Base Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #050505; border-radius: 4px; }
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
 
         .glass {
@@ -76,6 +77,39 @@
             bottom: 0;
             background: radial-gradient(circle at center, transparent 0%, #050505 100%);
             z-index: 0;
+        }
+
+        /* Horizontal Scrolling Utilities */
+        .scroll-container {
+            display: flex;
+            overflow-x: auto;
+            gap: 1.5rem;
+            padding-bottom: 1rem;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch; /* Momentum scrolling on iOS */
+        }
+
+        .scroll-item {
+            flex: 0 0 240px; /* Fixed width for smaller cards on desktop */
+            width: 240px;
+            scroll-snap-align: start;
+        }
+
+        /* Prevent single result from taking up the whole row */
+        .single-result-container {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        @media (max-width: 640px) {
+            .scroll-item { 
+                flex: 0 0 180px; /* Even smaller cards for mobile */
+                width: 180px;
+            }
+            .scroll-container {
+                gap: 1rem; /* Tighter spacing on mobile */
+            }
         }
 
     </style>
@@ -121,25 +155,26 @@
                         Explore Library
                     </button>
                     <button onclick="document.getElementById('landingSection').scrollIntoView({behavior: 'smooth'})" class="px-8 py-4 rounded-lg font-bold tracking-wide flex items-center justify-center gap-2 bg-transparent text-white border border-white/20 hover:bg-white/10 transition-colors">
-                        View Trending
+                        View Rankings
                     </button>
                 </div>
             </div>
         </section>
 
         <div class="container mx-auto px-6 lg:px-12 pb-20 pt-12">
-            <!-- Landing Page Section (Top 3) -->
+            
+            <!-- Landing Page Section (Categories) -->
             <section id="landingSection">
                 <div class="mb-10 text-center md:text-left">
-                    <h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-3">Trending Now</h2>
-                    <p class="text-zinc-400 max-w-2xl">The highest rated anime right now. Automatically curated based on global rankings.</p>
+                    <h2 class="text-3xl md:text-4xl font-bold tracking-tight mb-3">Trending Rankings</h2>
+                    <p class="text-zinc-400 max-w-2xl">The highest rated anime right now, sorted by category.</p>
                 </div>
 
                 <!-- 
-                  EXPECTED ID: topAnimeContainer 
-                  The JS will automatically inject the top 3 ranked anime cards here.
+                  EXPECTED ID: categoriesContainer
+                  JS will inject horizontal scrolling category blocks here.
                 -->
-                <div id="topAnimeContainer" class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                <div id="categoriesContainer" class="flex flex-col gap-10">
                     <!-- Javascript will populate this -->
                 </div>
             </section>
@@ -156,17 +191,14 @@
 
                 <!-- 
                   EXPECTED ID: searchResults 
-                  The JS will automatically inject filtered anime cards here based on user input.
+                  Updated to use horizontal scroll layout to prevent full-width stretching
                 -->
-                <div id="searchResults" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8">
+                <div id="searchResults" class="scroll-container w-full">
                     <!-- Javascript will populate this -->
                 </div>
             </section>
 
-            <!-- 
-              EXPECTED ID: downloadPageSection 
-              The JS will automatically inject the anime details, seasons, and episodes here.
-            -->
+            <!-- Download Page Section -->
             <section id="downloadPageSection" class="hidden-section pt-12">
                 <div id="downloadContent" class="max-w-5xl mx-auto">
                     <!-- Javascript will populate this -->
@@ -180,21 +212,19 @@
         /**
          * 1. Anime Data Structure
          * The main array containing all anime information.
-         * To add a new anime, simply add a new object to this array following the exact schema.
+         * Added 'category' field for grouping.
          */
         const animeData = [
             {
                 id: 1,
                 title: "Whelcome to demon school",
-                rank: 2,
+                rank: 5,
+                category: "Comedy",
                 coverImage: "we.jpg",
                 details: "In a dystopian 2099, humanity has merged with technology. A rogue squad uncovers a global conspiracy.",
                 downloadLink: "https://www.animedubhindi.link/welcome-to-demon-school-iruma-kun-season-3-hindi-multi-audio/",
                 seasons: [
-                    {
-                        season: 1,
-                        episodes: [
-                            { episode: 1, title: "Episode 1", downloadLink: "https://hubcloud.ist/drive/jtv4wq1tqgeksue" },
+                    { season: 1, episodes: [ { episode: 1, title: "Episode 1", downloadLink: "https://hubcloud.ist/drive/jtv4wq1tqgeksue" },
                             { episode: 2, title: "Episode 2", downloadLink: " https://share.google/WpcWzYOJUo9EifZq4" },
                             { episode: 3, title: "Episode 3", downloadLink: " https://share.google/4TpQ55eHsciLKRvww" },
                             { episode: 4, title: "Episode 4", downloadLink: " https://share.google/3bcBQVjGAAYnnys4r" },
@@ -216,169 +246,126 @@
                             { episode: 20, title: "Episode 20", downloadLink: "  https://share.google/Dzz9sSzYzLai8pGqw" },
                             { episode: 21, title: "Episode 21", downloadLink: " https://share.google/Cr8sX4QRudIaS2aeW" },
                             { episode: 22, title: "Episode 22", downloadLink: " https://share.google/gu1xJf0uXzctZV59y" },
-                            { episode: 23, title: "Episode 23", downloadLink: "  https://share.google/AHInReuCy1ZczUKqt" }
-                        
-                        ]
-                    },
-                    {
-                        season: 2,
-                        episodes: [
-                            { episode: "1 to 21", title: "All Episode", downloadLink: "https://share.google/uR10rXV2lelfCID4W" },
-                        ]
-                    },
-                    {
-                        season: 3,
-                        episodes: [
-                            { episode: "1 to 21", title: "All Episode", downloadLink: "https://share.google/BFMsjmnOawkKnM5pk" },
-                        ]
-                    }
+                            { episode: 23, title: "Episode 23", downloadLink: "  https://share.google/AHInReuCy1ZczUKqt" }] },
+                             { season: 2, episodes: [{ episode: 0, title: "all epsode", downloadLink: "https://share.google/uR10rXV2lelfCID4W" }] },
+                             { season: 3, episodes: [{ episode: 0, title: "all epsode", downloadLink: "https://share.google/BFMsjmnOawkKnM5pk" }] }
                 ]
             },
             {
                 id: 2,
                 title: "Demon Slayer Kimetsu no Yaiba Infinity Castle (2025)",
-                rank: 1,
+                rank: 2,
+                category: "Action",
                 coverImage: "de mov.jpg",
-                details: " Infinity Castle is an epic animated dark fantasy action film trilogy by Ufotable that adapts the final arc of Koyoharu Gotouge's manga series",
+                details: "Infinity Castle is an epic animated dark fantasy action film trilogy by Ufotable that adapts the final arc of Koyoharu Gotouge's manga series.",
                 downloadLink: "#download-echoes",
                 seasons: [
-                    {
-                        season: 1,
-                        episodes: [
-                            { episode: 0, title: "Full Movie(Hindi)", downloadLink: " https://share.google/heHD9cqHTlBnCasDm" }
-                        ]
-                    }
+                    { season: 1, episodes: [{ episode: 0, title: "Full Movie(Hindi)", downloadLink: "https://share.google/heHD9cqHTlBnCasDm" }] }
                 ]
             },
             {
                 id: 3,
                 title: "Mushoku Tensei",
                 rank: 3,
+                category: "Fantasy",
                 coverImage: "mu.png",
                 details: "Rudeus Greyrat is the main protagonist of the epic fantasy series Mushoku Tensei: Jobless Reincarnation, written by Rifujin na Magonote.",
                 downloadLink: "#download-stellar",
                 seasons: [
-                    {
-                        season: 1,
-                        episodes: [
-                            { episode: 1, title: "All Episode", downloadLink: "https://share.google/dvnXV9kF4qA3lc9IK" }
-                        ]
-                    },
-                    {
-                        season: 2,
-                        episodes: [
-                            { episode: 1, title: "All Episode", downloadLink: "https://share.google/5bQDmFoTz3pvrpO6C" }
-                        ]
-                    }
+                    { season: 1, episodes: [ { episode: 1, title: "All Episode", downloadLink: "https://share.google/dvnXV9kF4qA3lc9IK" }] },
+                    { season: 2, episodes: [ { episode: 1, title: "All Episode", downloadLink: "https://share.google/5bQDmFoTz3pvrpO6C" }] },
+                    { season: 2, episodes: [ { episode: 1, title: "All Episode", downloadLink: "https://share.google/rWjSp9TTJYJxyQQsR" }] }
+
                 ]
             },
             {
                 id: 4,
-                title: "Phantom Academy",
-                rank: 5,
-                coverImage: "https://images.unsplash.com/photo-1519074069444-1ba4fff66d16?q=80&w=600&auto=format&fit=crop",
-                details: "Students at an elite academy discover their school is built upon a dimensional rift.",
+                title: "Solo Leveling",
+                rank: 1,
+                category: "Action",
+                coverImage: "sol.jpg",
+                details: "Solo Leveling is a hit South Korean dark fantasy franchise about a weak hunter named Sung Jin-woo who gains a mysterious system to level up infinitely.",
                 downloadLink: "#download-phantom",
                 seasons: [
-                    {
-                        season: 1,
-                        episodes: [
-                            { episode: 1, title: "Orientation Day", downloadLink: "#pa-1" },
-                            { episode: 2, title: "The Midnight Hallway", downloadLink: "#pa-2" }
-                        ]
-                    }
+                    { season: 1, episodes: [{ episode: 1, title: "All Epsiode", downloadLink: "https://share.google/eBikbKGX0k9htWyyD" }] },
+                    { season: 2, episodes: [{ episode: 1, title: "All Epsiode", downloadLink: "https://share.google/ws0n7aAdLR42DpToa" }] }
                 ]
             },
             {
                 id: 5,
                 title: "Neon Drift",
                 rank: 4,
+                category: "Action",
                 coverImage: "https://images.unsplash.com/photo-1557672172-298e090bd0f1?q=80&w=600&auto=format&fit=crop",
                 details: "Underground street racing meets high-tech hovercrafts in the neo-Tokyo racing syndicate.",
                 downloadLink: "#download-drift",
                 seasons: [
-                    {
-                        season: 1,
-                        episodes: [
-                            { episode: 1, title: "Ignition", downloadLink: "#nd-1" },
-                            { episode: 2, title: "Redline", downloadLink: "#nd-2" },
-                            { episode: 3, title: "Photo Finish", downloadLink: "#nd-3" }
-                        ]
-                    }
+                    { season: 1, episodes: [{ episode: 1, title: "Ignition", downloadLink: "#" }] }
                 ]
             }
         ];
 
+
         /**
          * Dynamically creates a DOM element for a single anime card.
-         * Uses strict textContent assignments to prevent HTML injection (XSS).
+         * Adjusted dimensions and padding for the smaller horizontal format, preserving original visual styles.
          * 
          * @param {Object} anime - An object from the animeData array.
          * @returns {HTMLElement} The complete HTML element for the card.
          */
         function createAnimeCard(anime) {
-            // Main Card Container
             const card = document.createElement('div');
-            card.className = 'glass-card rounded-xl overflow-hidden flex flex-col group relative h-full';
+            // Added scroll-item class to lock width
+            card.className = 'scroll-item glass-card rounded-xl overflow-hidden flex flex-col group relative h-full';
 
-            // Image Container
             const imgContainer = document.createElement('div');
             imgContainer.className = 'relative aspect-[2/3] overflow-hidden bg-zinc-900';
             
-            // Cover Image
             const img = document.createElement('img');
-            img.src = anime.coverImage || 'https://placehold.co/600x900/18181b/ffffff?text=No+Image';
+            img.src = anime.coverImage || 'https://placehold.co/400x600/18181b/ffffff?text=No+Image';
             img.alt = anime.title;
             img.className = 'w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-all duration-500 group-hover:scale-105';
             
-            // Image Fallback (prevents broken image icons)
             img.onerror = () => {
-                img.src = `https://placehold.co/600x900/18181b/ffffff?text=${encodeURIComponent(anime.title)}`;
+                img.src = `https://placehold.co/400x600/18181b/ffffff?text=${encodeURIComponent(anime.title)}`;
             };
 
-            // Rank Badge
             const rankBadge = document.createElement('div');
-            rankBadge.className = 'absolute top-4 right-4 bg-black/60 backdrop-blur-md border border-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full z-10 shadow-lg';
-            rankBadge.textContent = `Rank #${anime.rank}`;
+            // Adjusted badge size slightly
+            rankBadge.className = 'absolute top-3 right-3 bg-black/60 backdrop-blur-md border border-white/20 text-white text-[10px] md:text-xs font-bold px-2.5 py-1 rounded-full z-10 shadow-lg';
+            rankBadge.textContent = anime.rank ? `Rank #${anime.rank}` : 'Unranked';
 
             imgContainer.appendChild(img);
-            imgContainer.appendChild(rankBadge);
+            if(anime.rank) imgContainer.appendChild(rankBadge);
 
-            // Content Container
             const content = document.createElement('div');
-            content.className = 'p-6 flex flex-col flex-grow gap-4';
+            // Reduced padding slightly for smaller card
+            content.className = 'p-4 flex flex-col flex-grow gap-3';
 
-            // Text Info Container
             const textDiv = document.createElement('div');
-            textDiv.className = 'flex-grow flex flex-col gap-2';
+            textDiv.className = 'flex-grow flex flex-col gap-1';
 
-            // Title
             const title = document.createElement('h3');
-            title.className = 'text-xl font-bold text-white leading-tight';
-            title.textContent = anime.title; // Safe injection
+            // Reduced text size slightly
+            title.className = 'text-base md:text-lg font-bold text-white leading-tight line-clamp-2';
+            title.textContent = anime.title; 
             
-            // Details
             const details = document.createElement('p');
-            details.className = 'text-sm text-zinc-400 line-clamp-3 leading-relaxed';
-            details.textContent = anime.details; // Safe injection
+            // Reduced text size and clamps for compact fit
+            details.className = 'text-xs text-zinc-400 line-clamp-2 leading-relaxed';
+            details.textContent = anime.details; 
 
             textDiv.appendChild(title);
             textDiv.appendChild(details);
 
-            // Download Button
             const downloadBtn = document.createElement('a');
-            // Modifying button to link to the new download page with the anime's ID
             downloadBtn.href = '?id=' + anime.id;
-            downloadBtn.className = 'mt-auto flex items-center justify-center gap-2 w-full bg-white text-black hover:bg-gray-200 font-semibold py-3 px-4 rounded-lg transition-colors';
+            downloadBtn.className = 'mt-auto flex items-center justify-center gap-2 w-full bg-white text-black hover:bg-gray-200 font-semibold py-2.5 px-3 rounded-lg transition-colors text-sm';
             
-            // SVG Icon for Download Button
             downloadBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 <span class="btn-text">Download</span>
             `;
-            
-            // Re-applying safe text for button just to be thorough (overwrites span text)
-            downloadBtn.querySelector('.btn-text').textContent = 'Download';
 
             content.appendChild(textDiv);
             content.appendChild(downloadBtn);
@@ -390,43 +377,61 @@
         }
 
         /**
-         * 2. Landing Page — Top 3 Anime
-         * Finds the top 3 anime by rank and renders them into the topAnimeContainer.
+         * 2. Landing Page — Categorized Horizontal Rankings
          */
-        function renderTopAnime() {
-            const container = document.getElementById('topAnimeContainer');
-            if (!container) return; // Guard clause
-            
-            container.innerHTML = ''; // Clear container
+        function renderCategories() {
+            const container = document.getElementById('categoriesContainer');
+            if (!container) return; 
+            container.innerHTML = ''; 
 
-            // Sort by rank ascending, then take the first 3
-            const top3 = [...animeData]
-                .sort((a, b) => a.rank - b.rank)
-                .slice(0, 3);
+            // Extract unique categories (ignoring items without categories)
+            const categories = [...new Set(animeData.map(a => a.category))].filter(Boolean);
 
-            top3.forEach(anime => {
-                container.appendChild(createAnimeCard(anime));
+            categories.forEach(cat => {
+                // Get items for this category and sort by rank
+                const categoryAnime = animeData
+                    .filter(a => a.category === cat && a.rank)
+                    .sort((a, b) => a.rank - b.rank);
+                
+                if (categoryAnime.length === 0) return;
+
+                const section = document.createElement('div');
+                section.className = 'w-full';
+                
+                const header = document.createElement('h3');
+                header.className = 'text-xl md:text-2xl font-bold tracking-tight mb-4 text-white uppercase border-l-4 border-zinc-500 pl-3';
+                header.textContent = cat;
+                
+                const scrollWrapper = document.createElement('div');
+                scrollWrapper.className = 'scroll-container w-full';
+                
+                categoryAnime.forEach(anime => {
+                    scrollWrapper.appendChild(createAnimeCard(anime));
+                });
+                
+                section.appendChild(header);
+                section.appendChild(scrollWrapper);
+                container.appendChild(section);
             });
         }
 
         /**
          * 4. Search Result UI
-         * Renders the search results into the searchResults container.
-         * Handles empty states if no anime matches.
-         * 
-         * @param {Array} results - The filtered array of anime objects.
          */
         function renderSearchResults(results) {
             const container = document.getElementById('searchResults');
             const meta = document.getElementById('searchMeta');
             if (!container || !meta) return;
 
-            container.innerHTML = ''; // Clear previous results
+            container.innerHTML = ''; 
             meta.textContent = `Found ${results.length} result${results.length !== 1 ? 's' : ''}`;
 
             if (results.length === 0) {
+                // Remove formatting classes so empty state looks right
+                container.className = '';
+                
                 const emptyState = document.createElement('div');
-                emptyState.className = 'col-span-full py-16 text-center glass rounded-xl border-dashed border border-white/20';
+                emptyState.className = 'w-full py-16 text-center glass rounded-xl border-dashed border border-white/20';
                 
                 const msgTitle = document.createElement('h3');
                 msgTitle.className = 'text-2xl font-bold mb-2 text-white';
@@ -442,7 +447,10 @@
                 return;
             }
 
-            // Render matching cards
+            // Apply horizontal scroll container class for 1 or more results.
+            // If there's 1 result, flex layout will naturally keep it compact on the left.
+            container.className = 'scroll-container w-full';
+            
             results.forEach(anime => {
                 container.appendChild(createAnimeCard(anime));
             });
@@ -450,13 +458,8 @@
 
         /**
          * 3. Search System
-         * Main event handler for the search input.
-         * Filters the animeData in real-time and toggles visibility of layout sections.
-         * 
-         * @param {Event} event - The input event
          */
         function searchAnime(event) {
-            // Trim spaces and convert to lowercase for case-insensitive matching
             const searchQuery = event.target.value.trim().toLowerCase();
             
             const heroSection = document.getElementById('heroSection');
@@ -464,28 +467,22 @@
             const searchSection = document.getElementById('searchSection');
             const downloadPageSection = document.getElementById('downloadPageSection');
 
-            // Always hide download page when typing in search
             if (downloadPageSection) {
                 downloadPageSection.classList.add('hidden-section');
             }
 
             if (searchQuery === '') {
-                // If input is empty, clear the URL param if it exists, and show home sections
-                if (window.location.search) {
-                    window.history.pushState({}, '', window.location.pathname);
-                }
+                if (window.location.search) window.history.pushState({}, '', window.location.pathname);
                 heroSection.classList.remove('hidden-section');
                 landingSection.classList.remove('hidden-section');
                 searchSection.classList.add('hidden-section');
                 return;
             }
 
-            // If user is searching, hide Landing & Hero, show Search
             heroSection.classList.add('hidden-section');
             landingSection.classList.add('hidden-section');
             searchSection.classList.remove('hidden-section');
 
-            // Filter animeData
             const searchResultsList = animeData.filter(anime => 
                 anime.title.toLowerCase().includes(searchQuery)
             );
@@ -494,13 +491,10 @@
         }
         
         /**
-         * Helper function to quickly reset view when clicking the logo
+         * Reset view helper
          */
         function resetToHome() {
-            // Clear URL parameters if any exist
-            if (window.location.search) {
-                window.history.pushState({}, '', window.location.pathname);
-            }
+            if (window.location.search) window.history.pushState({}, '', window.location.pathname);
             
             const searchInput = document.getElementById('animeSearch');
             if (searchInput) {
@@ -508,7 +502,6 @@
                 searchInput.dispatchEvent(new Event('input'));
             }
 
-            // Reset visibility states strictly
             document.getElementById('downloadPageSection').classList.add('hidden-section');
             document.getElementById('heroSection').classList.remove('hidden-section');
             document.getElementById('landingSection').classList.remove('hidden-section');
@@ -516,7 +509,6 @@
 
         /**
          * 6. Render Download Page
-         * Dynamically creates the UI for the selected anime's download page.
          */
         function renderDownloadPage(animeId) {
             const container = document.getElementById('downloadContent');
@@ -534,7 +526,6 @@
                 return;
             }
 
-            // Build Header/Anime Details Content
             let html = `
                 <button onclick="resetToHome()" class="mb-8 flex items-center gap-2 text-zinc-400 hover:text-white transition-colors group">
                     <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
@@ -553,7 +544,6 @@
                 </div>
             `;
 
-            // Build Seasons and Episodes Content
             if (anime.seasons && anime.seasons.length > 0) {
                 anime.seasons.forEach((season, index) => {
                     const seasonId = `season-${index}`;
@@ -593,7 +583,6 @@
                     `;
                 });
             } else {
-                // Fallback if an anime has no seasons defined but has a global download link
                 html += `
                     <div class="text-center py-16 glass rounded-2xl border border-white/10">
                         <p class="text-zinc-400 mb-6 text-lg">Detailed season information is not available yet.</p>
@@ -608,67 +597,50 @@
             container.innerHTML = html;
         }
 
-        /**
-         * Helper function to toggle the visibility of a season's episode list
-         * @param {string} seasonId - The ID of the container holding the episodes
-         * @param {HTMLElement} btn - The button element that was clicked
-         */
         function toggleSeason(seasonId, btn) {
             const content = document.getElementById(seasonId);
             const icon = btn.querySelector('svg');
             
             if (content) {
-                // Toggle visibility
                 content.classList.toggle('hidden');
                 content.classList.toggle('flex');
-                
-                // Rotate the arrow icon
                 icon.classList.toggle('rotate-180');
             }
         }
 
         /**
          * 5. Initial State
-         * Bootstraps the application on page load.
          */
         function initSystem() {
-            // Check for URL parameters (Routing logic for download page)
             const params = new URLSearchParams(window.location.search);
             const animeId = params.get('id');
 
             if (animeId) {
-                // Hide Home/Search and show the Download Page
                 document.getElementById('heroSection').classList.add('hidden-section');
                 document.getElementById('landingSection').classList.add('hidden-section');
                 document.getElementById('searchSection').classList.add('hidden-section');
                 document.getElementById('downloadPageSection').classList.remove('hidden-section');
                 
-                // Render the selected anime
                 renderDownloadPage(Number(animeId));
             } else {
-                // 1. Initial State: Render Top 3
-                renderTopAnime();
+                // Initialize horizontally scrolling categories
+                renderCategories();
             }
 
-            // 2. Setup Search Listeners
             const searchInput = document.getElementById('animeSearch');
             if (searchInput) {
-                // Listen to real-time keystrokes
                 searchInput.addEventListener('input', searchAnime);
             }
 
-            // 3. Setup Clear Button Helper
             const clearBtn = document.getElementById('clearSearchBtn');
             if (clearBtn && searchInput) {
                 clearBtn.addEventListener('click', () => {
                     searchInput.value = '';
-                    // Trigger input event manually to reset view
                     searchInput.dispatchEvent(new Event('input'));
                 });
             }
         }
 
-        // Wait for HTML to fully parse before running JavaScript
         document.addEventListener('DOMContentLoaded', initSystem);
 
     </script>
